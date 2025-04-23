@@ -123,6 +123,8 @@ fun VerificationScreen(
                                     onHandDetected = { confidence ->
                                         handDetected = true
                                         detectionConfidence = confidence
+                                        // Automatically unblock apps when hand is detected
+                                        viewModel.skipVerification()
                                     }
                                 )
                             } else {

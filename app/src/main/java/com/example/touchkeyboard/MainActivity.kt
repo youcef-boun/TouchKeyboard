@@ -14,8 +14,10 @@ import com.example.touchkeyboard.utils.PermissionManager
 import javax.inject.Inject
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.os.Build
+import android.util.Log
+import androidx.annotation.RequiresApi
 import com.example.touchkeyboard.services.AppUsageTrackingService
-
 
 
 
@@ -24,11 +26,23 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var permissionManager: PermissionManager
 
+    // Used to detect if coming from block overlay
+    private var launchedFromBlockOverlay = false
+
+    @RequiresApi(Build.VERSION_CODES.S)
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d("TK_MainActivity", "onCreate: intent=$intent flags=${intent?.flags}")
         super.onCreate(savedInstanceState)
 
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        // Detect if launched from BlockingOverlayActivity
+        if (intent?.flags?.and(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP) != 0) {
+            launchedFromBlockOverlay = true
+            Log.d("TK_MainActivity", "Launched from block overlay (flags matched)")
+        } else {
+            Log.d("TK_MainActivity", "Normal launch (flags not matched)")
+        }
 
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
         setContent {
             TouchKeyboardTheme {
@@ -42,16 +56,47 @@ class MainActivity : ComponentActivity() {
         }
 
         if (permissionManager.hasUsageStatsPermission()) {
+            Log.d("TK_MainActivity", "Starting AppUsageTrackingService")
             startService(Intent(this, AppUsageTrackingService::class.java).apply {
                 action = "START_FOREGROUND"
             })
         }
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        Log.d("TK_MainActivity", "onNewIntent: intent=$intent flags=${intent?.flags}")
+        super.onNewIntent(intent)
+        // Detect if coming from block overlay
+        if (intent?.flags?.and(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP) != 0) {
+            launchedFromBlockOverlay = true
+            Log.d("TK_MainActivity", "onNewIntent: Launched from block overlay (flags matched)")
+            suppressEntryAnimation()
+        } else {
+            Log.d("TK_MainActivity", "onNewIntent: Normal launch (flags not matched)")
+        }
+    }
+
+    override fun onResume() {
+        Log.d("TK_MainActivity", "onResume: launchedFromBlockOverlay=$launchedFromBlockOverlay")
+        super.onResume()
+        if (launchedFromBlockOverlay) {
+            suppressEntryAnimation()
+            launchedFromBlockOverlay = false
+            Log.d("TK_MainActivity", "onResume: Suppressed animation and showed notification")
+        }
+    }
+
     override fun onDestroy() {
+        Log.d("TK_MainActivity", "onDestroy")
         super.onDestroy()
         startService(Intent(this, AppUsageTrackingService::class.java).apply {
             action = "STOP_FOREGROUND"
         })
     }
+
+    private fun suppressEntryAnimation() {
+        overridePendingTransition(0, 0)
+    }
+
+
 }

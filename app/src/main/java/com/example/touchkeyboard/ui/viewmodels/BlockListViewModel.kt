@@ -129,13 +129,18 @@ class BlockListViewModel @Inject constructor(
 
         try {
             val pm = packageManager
+            // Only get apps that have a launcher intent (user-visible)
+            val launcherIntent = android.content.Intent(android.content.Intent.ACTION_MAIN, null)
+            launcherIntent.addCategory(android.content.Intent.CATEGORY_LAUNCHER)
+            val resolvedActivities = pm.queryIntentActivities(launcherIntent, 0)
+            val userVisiblePackages = resolvedActivities.map { it.activityInfo.packageName }.toSet()
+
             val packages = pm.getInstalledApplications(PackageManager.GET_META_DATA)
             Log.d(TAG, "Found ${packages.size} installed apps")
 
             return packages
                 .filter { !it.packageName.equals(context.packageName) }  // Don't show our own app
-                .filter { !it.packageName.startsWith("com.android.") }  // Filter out core Android apps
-                .filter { !it.packageName.startsWith("android.") }  // Filter out Android system apps
+                .filter { userVisiblePackages.contains(it.packageName) } // Only apps with launcher icon
                 .mapNotNull { appInfo ->
                     try {
                         val label = pm.getApplicationLabel(appInfo).toString()
@@ -152,7 +157,7 @@ class BlockListViewModel @Inject constructor(
                 }
                 .sortedBy { it.appName }
                 .also { apps ->
-                    Log.d(TAG, "Filtered down to ${apps.size} user apps")
+                    Log.d(TAG, "Filtered down to ${apps.size} user-visible apps")
                 }
         } catch (e: Exception) {
             Log.e(TAG, "Error loading installed apps", e)

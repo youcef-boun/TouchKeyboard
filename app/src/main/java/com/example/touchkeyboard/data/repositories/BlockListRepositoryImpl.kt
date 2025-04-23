@@ -105,20 +105,20 @@ class BlockListRepositoryImpl @Inject constructor(
 
     override suspend fun addAppToBlockList(packageName: String, appName: String) {
         val currentApps = blockedAppsFlow.value.toMutableList()
-        if (!currentApps.any { it.packageName == packageName }) {
-            val app = BlockedApp(
-                packageName = packageName,
-                appName = appName,
-                isCurrentlyBlocked = true,
-                blockStartTime = 0,
-                blockEndTime = 0,
-                isBlockedIndefinitely = true,
-                remainingBlockTime = 0
-            )
-            currentApps.add(app)
-            saveBlockedApps(currentApps)
-            Log.d(TAG, "Added app to block list: $packageName ($appName)")
-        }
+        // Remove any previous entry for this package (fixes issues with duplicates or old states)
+        currentApps.removeAll { it.packageName == packageName }
+        val app = com.touchkeyboard.domain.models.BlockedApp(
+            packageName = packageName,
+            appName = appName,
+            isCurrentlyBlocked = true,
+            blockStartTime = 0,
+            blockEndTime = 0,
+            isBlockedIndefinitely = true,
+            remainingBlockTime = 0
+        )
+        currentApps.add(app)
+        saveBlockedApps(currentApps)
+        Log.d(TAG, "Added app to block list: $packageName ($appName)")
     }
 
     override suspend fun removeAppFromBlockList(packageName: String) {

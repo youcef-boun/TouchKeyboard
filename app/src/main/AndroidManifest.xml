@@ -47,6 +47,15 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".ui.overlay.BlockingOverlayActivity"
+            android:theme="@style/Theme.Transparent"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:launchMode="singleTask"
+            android:exported="false" />
+
         <!-- Accessibility Service for app blocking -->
         <service
             android:name=".services.TouchKeyboardAccessibilityService"
