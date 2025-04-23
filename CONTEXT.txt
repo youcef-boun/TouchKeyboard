@@ -1,0 +1,178 @@
+# Touch Keyboard - Productivity App
+
+A privacy-focused productivity app that helps users stay focused by blocking distracting apps until they prove they're working through a live hand-on-keyboard verification.
+
+## Key Features
+
+- 🔒 **Fully Offline Operation** - Complete privacy with local data processing
+- 📱 **Smart App Blocking** - Block distracting apps with customizable durations
+- ⌚ **Screen Time Analytics** - Track and analyze your app usage patterns
+- 🤚 **Innovative Unlocking** - Verify work status through hand detection
+- 🎯 **Customizable Goals** - Set and track your productivity targets
+
+## App Flow
+
+### 1. Welcome Screen
+- Clean, minimalist interface
+- Brief app introduction
+- "Get Started" button for permission setup
+
+### 2. Permission Setup
+Required permissions:
+- Digital Wellbeing Access
+- Camera Access
+- Local Notifications
+- Apps list Access
+
+> Note: If permissions are denied, the app explains their necessity and offers retry options.
+
+### 3. Block List Management
+- View and manage blocked applications
+- Add apps via the '+' button
+- Customize break durations:
+  - Short break (default: 15 minutes)
+  - Long break (default: 60 minutes)
+
+### 4. App Unlocking Process
+1. Scan hand on keyboard using device camera
+2. Receive verification confirmation
+3. Choose unlock duration:
+   - 15 minutes (short break)
+   - 60 minutes (long break)
+   - Until sunset
+   - Rest of day
+
+### 5. Home Dashboard
+- Daily screen time overview
+- Per-app usage statistics
+- Historical data navigation
+
+### 6. User Profile
+- Personal information
+- Productivity goals and progress
+
+## Technical Implementation
+
+### Tech Stack:
+- **Frontend**: Jetpack Compose
+- **Language**: Kotlin
+- **Storage**: Local Database (Room database)
+- **Computer Vision**: mediapipe hands/OpenCV
+- **System Integration**: Android Accessibility Services
+
+
+### Key Components
+
+#### 1. Offline Functionality
+- Local data processing
+- No internet dependency
+- Privacy-first approach
+
+#### 2. Blocking Mechanism
+- Accessibility service integration
+- Real-time app usage monitoring
+- Customizable blocking rules
+
+#### 3. Analytics Engine
+- Screen time tracking
+- App usage monitoring
+- Historical data management
+
+#### 4. Verification System
+- Real-time hand detection
+- Keyboard presence verification
+- Anti-spoofing measures
+
+#### 5. User Interface
+- Material Design principles
+- Intuitive navigation
+- Responsive layouts
+
+## Privacy Commitment
+
+Focus & Block operates completely offline, ensuring:
+- No data leaves your device
+- No cloud dependencies
+- Complete user privacy
+- Reliable functionality without internet
+
+## Customization Options
+
+Users can customize:
+- Break durations
+- Blocked app list
+- Notification preferences
+- Productivity goals
+- Screen time targets
+
+---
+## Database Schema
+
+### Tables
+
+#### 1. User Settings
+```sql
+CREATE TABLE user_settings (
+    id INTEGER PRIMARY KEY,
+    short_break_duration INTEGER DEFAULT 15,  -- in minutes
+    long_break_duration INTEGER DEFAULT 60,   -- in minutes
+    notifications_enabled BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### 2. Blocked Apps
+```sql
+CREATE TABLE blocked_apps (
+    id INTEGER PRIMARY KEY,
+    package_name TEXT NOT NULL UNIQUE,
+    app_name TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### 3. Screen Time Records
+```sql
+CREATE TABLE screen_time_records (
+    id INTEGER PRIMARY KEY,
+    package_name TEXT NOT NULL,
+    usage_duration INTEGER NOT NULL,  -- in seconds
+    date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (package_name) REFERENCES blocked_apps(package_name)
+);
+```
+
+#### 4. Unlock Sessions
+```sql
+CREATE TABLE unlock_sessions (
+    id INTEGER PRIMARY KEY,
+    start_time TIMESTAMP NOT NULL,
+    end_time TIMESTAMP NOT NULL,
+    duration INTEGER NOT NULL,  -- in minutes
+    unlock_type TEXT CHECK (unlock_type IN ('short_break', 'long_break', 'until_sunset', 'full_day')),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### 5. Productivity Goals
+```sql
+CREATE TABLE productivity_goals (
+    id INTEGER PRIMARY KEY,
+    goal_type TEXT NOT NULL,
+    target_value INTEGER NOT NULL,  -- in minutes
+    current_value INTEGER NOT NULL, -- in minutes
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    is_completed BOOLEAN DEFAULT false,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+## Project Structure
+
+*touch Keyboard: Your offline companion for enhanced productivity.*

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TouchKeyboard</string>
+    <string name="accessibility_service_description">TouchKeyboard uses accessibility service to help you stay focused by blocking distracting apps.</string>
+
+    <!-- Welcome Screen -->
+    <string name="welcome_title">Welcome to Focus &amp; Block</string>
+    <string name="welcome_description">Stay focused by blocking distracting apps until you prove you\'re working.</string>
+    <string name="get_started">Get Started</string>
+
+    <!-- Permissions -->
+    <string name="permissions_title">Required Permissions</string>
+    <string name="permissions_description">Focus &amp; Block needs the following permissions to function:</string>
+    <string name="permission_camera">Camera Access</string>
+    <string name="permission_camera_description">To verify your hand on keyboard</string>
+    <string name="permission_usage">Usage Access</string>
+    <string name="permission_usage_description">To monitor and block apps</string>
+    <string name="permission_notifications">Notifications</string>
+    <string name="permission_notifications_description">To send reminders and updates</string>
+
+    <!-- Block List -->
+    <string name="block_list_title">Blocked Apps</string>
+    <string name="add_app">Add App</string>
+    <string name="no_blocked_apps">No apps blocked yet</string>
+
+    <!-- Unlock Dialog -->
+    <string name="unlock_title">Unlock Your Apps</string>
+    <string name="unlock_hand_detected">Hand on keyboard detected</string>
+    <string name="unlock_short_break">15 minutes</string>
+    <string name="unlock_long_break">60 minutes</string>
+    <string name="unlock_until_sunset">Until sunset</string>
+    <string name="unlock_rest_of_day">Rest of day</string>
+
+    <!-- Home Screen -->
+    <string name="home_title">Dashboard</string>
+    <string name="screen_time">Screen Time</string>
+    <string name="app_usage">App Usage</string>
+
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="productivity_goals">Productivity Goals</string>
+
+    <!-- Common -->
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+
+    <!-- Notifications -->
+    <string name="channel_name">Touch Keyboard Notifications</string>
+    <string name="channel_description">Notifications for blocked_apps</string>
+
+</resources>
