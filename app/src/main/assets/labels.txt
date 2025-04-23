@@ -1,0 +1,2 @@
+0 Hand on keyboard
+1 Not hand on keyboard
