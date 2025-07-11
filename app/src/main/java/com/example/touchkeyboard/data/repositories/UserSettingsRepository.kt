@@ -10,7 +10,6 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
-
 @Singleton
 class UserSettingsRepository @Inject constructor(
     private val userSettingsDao: UserSettingsDao
@@ -23,11 +22,43 @@ class UserSettingsRepository @Inject constructor(
     }
 
     override suspend fun saveUserSettings(userSettings: DomainUserSettings) {
-        userSettingsDao.insertUserSettings(mapToDataModel(userSettings))
+        userSettingsDao.ensureAndUpdateUserSettings(mapToDataModel(userSettings))
     }
 
     override suspend fun updateUserGoal(goal: UserGoal) {
-        userSettingsDao.updateUserGoal(goal.name)
+        if (!userSettingsDao.doesSettingsRowExist()) {
+            userSettingsDao.insertUserSettings(
+                DataUserSettings(
+                    id = 1,
+                    goal = goal,
+                    ageRange = "25-34",
+                    dailyScreenTimeTarget = 240,
+                    keyboardTouchCount = 0,
+                    isSubscriptionActive = false,
+                    remainingSkips = 3
+                )
+            )
+        } else {
+            userSettingsDao.updateUserGoal(goal.name)
+        }
+    }
+
+    override suspend fun updateAgeRange(ageRange: String) {
+        if (!userSettingsDao.doesSettingsRowExist()) {
+            userSettingsDao.insertUserSettings(
+                DataUserSettings(
+                    id = 1,
+                    goal = UserGoal.BE_PRESENT,
+                    ageRange = ageRange,
+                    dailyScreenTimeTarget = 240,
+                    keyboardTouchCount = 0,
+                    isSubscriptionActive = false,
+                    remainingSkips = 3
+                )
+            )
+        } else {
+            userSettingsDao.updateAgeRange(ageRange)
+        }
     }
 
     override suspend fun incrementKeyboardTouchCount() {
@@ -53,11 +84,10 @@ class UserSettingsRepository @Inject constructor(
                 remainingSkips = dataModel.remainingSkips
             )
         } else {
-            // Provide default values when no settings exist
             DomainUserSettings(
                 goal = UserGoal.BE_PRESENT,
-                ageRange = "18-24",
-                dailyScreenTimeTarget = 120, // 2 hours in minutes
+                ageRange = "25-34", // Aligned with UserSettings
+                dailyScreenTimeTarget = 240,
                 keyboardTouchCount = 0,
                 isSubscriptionActive = false,
                 remainingSkips = 3
@@ -67,7 +97,7 @@ class UserSettingsRepository @Inject constructor(
 
     private fun mapToDataModel(domainModel: DomainUserSettings): DataUserSettings {
         return DataUserSettings(
-            id = 1, // Single instance
+            id = 1,
             goal = domainModel.goal,
             ageRange = domainModel.ageRange,
             dailyScreenTimeTarget = domainModel.dailyScreenTimeTarget,
@@ -76,4 +106,4 @@ class UserSettingsRepository @Inject constructor(
             remainingSkips = domainModel.remainingSkips
         )
     }
-} 
+}

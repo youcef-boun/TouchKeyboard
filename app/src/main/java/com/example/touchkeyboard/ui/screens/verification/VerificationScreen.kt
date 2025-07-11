@@ -353,9 +353,9 @@ fun VerificationScreen(
 
 
                 DurationOption(
-                    text = "5 seconds for testing",
-                    isSelected = selectedDuration == 5 * 1000L,
-                    onClick = { selectedDuration = 5 * 1000L }
+                    text = "1 minute for testing",
+                    isSelected = selectedDuration == 60 * 1000L,
+                    onClick = { selectedDuration = 60 * 1000L }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))

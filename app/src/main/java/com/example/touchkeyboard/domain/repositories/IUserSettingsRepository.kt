@@ -11,6 +11,7 @@ interface IUserSettingsRepository {
     fun getUserSettings(): Flow<UserSettings>
     suspend fun saveUserSettings(userSettings: UserSettings)
     suspend fun updateUserGoal(goal: UserGoal)
+    suspend fun updateAgeRange(ageRange: String)
     suspend fun incrementKeyboardTouchCount()
     suspend fun decrementRemainingSkips()
     fun getKeyboardTouchCount(): Flow<Int>

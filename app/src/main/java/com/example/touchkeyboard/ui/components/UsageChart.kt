@@ -12,7 +12,6 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.times
 import java.util.concurrent.TimeUnit
 import kotlin.math.ceil
 
@@ -49,109 +48,111 @@ fun WeeklyUsageChart(
     val primaryColor = MaterialTheme.colorScheme.primary
     val gridLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
 
-    // Chart constants
+    // Chart dimensions
     val chartHeight = 180.dp
     val yAxisWidth = 40.dp
     val bottomLabelHeight = 24.dp
-    val chartTopPadding = 16.dp
-    val chartBottomPadding = 8.dp
+    val topPadding = 16.dp
+    val bottomPadding = 8.dp
 
-    Row(modifier = modifier.fillMaxWidth()) {
-        // Y-Axis labels column
-        Box(
+    Column(modifier = modifier.fillMaxWidth()) {
+        // Main chart area with Y-axis and bars
+        Row(
             modifier = Modifier
-                .width(yAxisWidth)
-                .height(chartHeight + bottomLabelHeight + chartTopPadding + chartBottomPadding)
+                .fillMaxWidth()
+                .height(chartHeight + topPadding + bottomPadding)
         ) {
-            // Place each y-axis label at its exact position
-            yLabels.forEach { hour ->
-                // Position from top, aligned with grid lines
-                val position = chartTopPadding + (1 - hour.toFloat() / roundedMax) * chartHeight
+            // Y-Axis labels
+            Column(
+                modifier = Modifier
+                    .width(yAxisWidth)
+                    .fillMaxHeight()
+                    .padding(top = topPadding, bottom = bottomPadding),
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Labels from top to bottom (max hours to 0h)
+                yLabels.reversed().forEach { hour ->
+                    Text(
+                        text = "${hour}h",
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 8.dp)
+                    )
+                }
+            }
 
-                Text(
-                    text = "${hour}h",
-                    style = MaterialTheme.typography.bodySmall,
-                    textAlign = TextAlign.End,
+            // Chart area with grid lines and bars
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+            ) {
+                Canvas(
                     modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .offset(y = position)
-                        .padding(end = 8.dp)
-                        .width(32.dp)
-                )
+                        .fillMaxSize()
+                        .padding(top = topPadding, bottom = bottomPadding)
+                ) {
+                    val chartAreaHeight = size.height
+                    val chartAreaWidth = size.width
+                    val barSpacing = chartAreaWidth / daysOfWeek.size
+                    val barWidth = barSpacing * 0.6f
+
+                    // Draw horizontal grid lines
+                    yLabels.forEach { hour ->
+                        // Calculate Y position: 0h at bottom, max at top
+                        val normalizedValue = hour.toFloat() / roundedMax
+                        val yPosition = chartAreaHeight - (normalizedValue * chartAreaHeight)
+
+                        drawLine(
+                            color = gridLineColor,
+                            start = Offset(0f, yPosition),
+                            end = Offset(chartAreaWidth, yPosition),
+                            strokeWidth = 1.dp.toPx()
+                        )
+                    }
+
+                    // Draw bars
+                    weeklyStats.forEach { (dayIndex, usage) ->
+                        val usageHours = usage.toFloat() / (1000 * 60 * 60)
+                        val normalizedHeight = (usageHours / roundedMax).coerceIn(0f, 1f)
+                        val barHeight = chartAreaHeight * normalizedHeight
+
+                        val xCenter = dayIndex * barSpacing + (barSpacing / 2)
+                        val yBottom = chartAreaHeight // 0h line (bottom)
+                        val yTop = chartAreaHeight - barHeight // Bar top
+
+                        drawLine(
+                            color = primaryColor,
+                            start = Offset(xCenter, yBottom),
+                            end = Offset(xCenter, yTop),
+                            strokeWidth = barWidth,
+                            cap = StrokeCap.Round
+                        )
+                    }
+                }
             }
         }
 
-        // Chart area (bars, grid lines, and day labels)
-        Box(
+        // X-axis day labels
+        Row(
             modifier = Modifier
-                .weight(1f)
-                .height(chartHeight + bottomLabelHeight + chartTopPadding + chartBottomPadding)
+                .fillMaxWidth()
+                .height(bottomLabelHeight)
+                .padding(
+                    start = yAxisWidth,
+                    top = 10.dp
+                ),
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            // Grid lines and bars
-            Canvas(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(chartHeight)
-                    .align(Alignment.TopCenter)
-                    .padding(top = chartTopPadding)
-            ) {
-                val barSpacing = size.width / daysOfWeek.size
-                val barWidth = barSpacing * 0.6f // 60% of available space per day
-
-                // Draw horizontal grid lines with exact alignment
-                yLabels.forEach { hour ->
-                    val yPosition = size.height * (1 - hour.toFloat() / roundedMax)
-
-                    drawLine(
-                        color = gridLineColor,
-                        start = Offset(0f, yPosition),
-                        end = Offset(size.width, yPosition),
-                        strokeWidth = 1.dp.toPx()
-                    )
-                }
-
-                // Draw bars starting from the baseline (0h)
-                weeklyStats.forEach { (day, usage) ->
-                    val usageHours = usage.toFloat() / (1000 * 60 * 60)
-
-                    // Calculate height as percentage of chart height (for proper scaling)
-                    val heightPercentage = (usageHours / roundedMax).coerceIn(0f, 1f)
-                    val barHeight = size.height * heightPercentage
-
-                    // Position bar in the center of its allocated space
-                    val xCenter = day * barSpacing + (barSpacing / 2)
-
-                    // Draw from baseline (bottom) upward
-                    val yStart = size.height // Start at the bottom (0h line)
-                    val yEnd = size.height - barHeight // Go up by the calculated height
-
-                    drawLine(
-                        color = primaryColor,
-                        start = Offset(x = xCenter, y = yStart),
-                        end = Offset(x = xCenter, y = yEnd),
-                        strokeWidth = barWidth,
-                        cap = StrokeCap.Round
-                    )
-                }
-            }
-
-            // X-axis day labels
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(bottomLabelHeight)
-                    .align(Alignment.BottomStart)
-                    .padding(top = chartBottomPadding),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                daysOfWeek.forEach { day ->
-                    Text(
-                        text = day,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+            daysOfWeek.forEach { day ->
+                Text(
+                    text = day,
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
@@ -183,11 +184,12 @@ fun UsageProgressBar(
             )
         }
 
+        Spacer(modifier = Modifier.height(8.dp))
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
-                .padding(vertical = 8.dp)
         ) {
             Canvas(modifier = Modifier.fillMaxSize()) {
                 // Background track
@@ -195,16 +197,20 @@ fun UsageProgressBar(
                     color = surfaceVariantColor,
                     start = Offset(0f, size.height / 2),
                     end = Offset(size.width, size.height / 2),
-                    strokeWidth = size.height
+                    strokeWidth = size.height,
+                    cap = StrokeCap.Round
                 )
 
                 // Progress indicator
-                drawLine(
-                    color = primaryColor,
-                    start = Offset(0f, size.height / 2),
-                    end = Offset(size.width * progress, size.height / 2),
-                    strokeWidth = size.height
-                )
+                if (progress > 0f) {
+                    drawLine(
+                        color = primaryColor,
+                        start = Offset(0f, size.height / 2),
+                        end = Offset(size.width * progress, size.height / 2),
+                        strokeWidth = size.height,
+                        cap = StrokeCap.Round
+                    )
+                }
             }
         }
     }
@@ -221,13 +227,13 @@ private fun formatDuration(millis: Long): String {
 fun WeeklyUsageChartPreview() {
     // Sample data for preview - simulates a week of usage
     val sampleData = mapOf(
-        0 to TimeUnit.HOURS.toMillis(3) + TimeUnit.MINUTES.toMillis(30), // Sunday
-        1 to TimeUnit.HOURS.toMillis(1) + TimeUnit.MINUTES.toMillis(15), // Monday
-        2 to TimeUnit.HOURS.toMillis(2) + TimeUnit.MINUTES.toMillis(45), // Tuesday
-        3 to TimeUnit.HOURS.toMillis(4) + TimeUnit.MINUTES.toMillis(10), // Wednesday
-        4 to TimeUnit.HOURS.toMillis(0) + TimeUnit.MINUTES.toMillis(45), // Thursday
-        5 to TimeUnit.HOURS.toMillis(3) + TimeUnit.MINUTES.toMillis(20), // Friday
-        6 to TimeUnit.HOURS.toMillis(5) + TimeUnit.MINUTES.toMillis(0)   // Saturday
+        0 to TimeUnit.HOURS.toMillis(3) + TimeUnit.MINUTES.toMillis(30), // Sunday - 3.5h
+        1 to TimeUnit.HOURS.toMillis(1) + TimeUnit.MINUTES.toMillis(15), // Monday - 1.25h
+        2 to TimeUnit.HOURS.toMillis(2) + TimeUnit.MINUTES.toMillis(45), // Tuesday - 2.75h
+        3 to TimeUnit.HOURS.toMillis(4) + TimeUnit.MINUTES.toMillis(10), // Wednesday - 4.17h
+        4 to TimeUnit.HOURS.toMillis(0) + TimeUnit.MINUTES.toMillis(45), // Thursday - 0.75h
+        5 to TimeUnit.HOURS.toMillis(3) + TimeUnit.MINUTES.toMillis(20), // Friday - 3.33h
+        6 to TimeUnit.HOURS.toMillis(5) + TimeUnit.MINUTES.toMillis(0)   // Saturday - 5h
     )
 
     MaterialTheme {
@@ -242,6 +248,18 @@ fun WeeklyUsageChartPreview() {
                 modifier = Modifier.padding(bottom = 16.dp)
             )
             WeeklyUsageChart(weeklyStats = sampleData)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Daily Progress",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            UsageProgressBar(
+                currentUsage = TimeUnit.HOURS.toMillis(2) + TimeUnit.MINUTES.toMillis(30),
+                dailyLimit = TimeUnit.HOURS.toMillis(4)
+            )
         }
     }
 }

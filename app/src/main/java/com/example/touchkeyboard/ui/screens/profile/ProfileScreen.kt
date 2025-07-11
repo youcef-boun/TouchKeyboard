@@ -20,13 +20,46 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.touchkeyboard.ui.theme.BackgroundDark
 import com.touchkeyboard.ui.viewmodels.ProfileViewModel
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import com.example.touchkeyboard.ui.screens.onboarding.UserGoal
+import com.example.touchkeyboard.ui.viewmodels.HomeViewModel
+import java.util.concurrent.TimeUnit
+
 
 @Composable
 fun ProfileScreen(
-    viewModel: ProfileViewModel = hiltViewModel()
+    viewModel: ProfileViewModel = hiltViewModel() ,
+    homeviewModel : HomeViewModel = hiltViewModel()
 ) {
+    val screenTimeState by homeviewModel.screenTimeState.collectAsState()
     val uiState by viewModel.profileState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
+    // Dialog state
+    val showGoalDialog = remember { mutableStateOf(false) }
+    val showAgeDialog = remember { mutableStateOf(false) }
+
+    // Goal options
+    val goalOptions = listOf(
+        UserGoal.BE_PRESENT,
+        UserGoal.CONNECT_PEOPLE,
+        UserGoal.FOCUS_WORK,
+        UserGoal.CUSTOM
+    )
+    // Age range options
+    val ageOptions = listOf(
+        "Under 18",
+        "18-24",
+        "25-34",
+        "35+"
+    )
 
     Column(
         modifier = Modifier
@@ -35,15 +68,14 @@ fun ProfileScreen(
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
+
         Text(
             text = "Profile",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = Color.White
         )
-        
         Spacer(modifier = Modifier.height(24.dp))
-        
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier.fillMaxSize(),
@@ -59,7 +91,6 @@ fun ProfileScreen(
                 color = Color.Gray,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -70,40 +101,36 @@ fun ProfileScreen(
                     ProfileItem(
                         title = "Goal",
                         value = uiState.userGoal.title,
-                        onEdit = { /* Handle edit */ }
+                        onEdit = { showGoalDialog.value = true }
                     )
-                    
                     Divider(color = Color(0xFF2A2A2A), thickness = 1.dp)
-                    
                     // Age Range
                     ProfileItem(
                         title = "Age range",
                         value = uiState.ageRange,
-                        onEdit = { /* Handle edit */ }
+                        onEdit = { showAgeDialog.value = true }
                     )
-                    
                     Divider(color = Color(0xFF2A2A2A), thickness = 1.dp)
-                    
-                    // Screen Time
+                    // Screen Time (not editable)
                     ProfileItem(
                         title = "Screen time",
-                       value = uiState.screenTimeAverage,
-                        onEdit = { /* Handle edit */ }
+                        value = formatDuration(screenTimeState),
+                        onEdit = {},
+                        editable = false
                     )
-                    
                     Divider(color = Color(0xFF2A2A2A), thickness = 1.dp)
-                    
                     // Keyboard Touch Count
                     ProfileItem(
                         title = "Keyboard touch count",
                         value = uiState.keyboardTouchCount,
-                        onEdit = { /* Handle edit */ }
+                        onEdit = { /* Handle edit */ },
+                        editable = false
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = Color.DarkGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 4.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             // Account Section
             Text(
                 text = "ACCOUNT",
@@ -111,7 +138,6 @@ fun ProfileScreen(
                 color = Color.Gray,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -124,9 +150,7 @@ fun ProfileScreen(
                         value = uiState.subscriptionTier,
                         onEdit = { /* Handle edit */ }
                     )
-                    
                     Divider(color = Color(0xFF2A2A2A), thickness = 1.dp)
-                    
                     // Skip Settings
                     ProfileItem(
                         title = "Skip settings",
@@ -135,9 +159,9 @@ fun ProfileScreen(
                     )
                 }
             }
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
+            Spacer(modifier = Modifier.height(16.dp))
+            Divider(color = Color.DarkGray, thickness = 1.dp, modifier = Modifier.padding(vertical = 4.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             // Help Section
             Text(
                 text = "HELP",
@@ -145,7 +169,6 @@ fun ProfileScreen(
                 color = Color.Gray,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
-            
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -156,13 +179,67 @@ fun ProfileScreen(
                     ProfileItem(
                         title = "FAQs",
                         value = null,
-                        onEdit = { /* Handle edit */ }
+                        onEdit = {
+                            Toast.makeText(context, "FAQs coming soon!", Toast.LENGTH_SHORT).show()
+                        }
                     )
                 }
             }
         }
-        
         Spacer(modifier = Modifier.height(24.dp))
+
+        // Goal dialog
+        if (showGoalDialog.value) {
+            AlertDialog(
+                onDismissRequest = { showGoalDialog.value = false },
+                title = { Text("Select your goal") },
+                text = {
+                    Column {
+                        goalOptions.forEach { goal ->
+                            TextButton(
+                                onClick = {
+                                    viewModel.updateUserGoal(goal)
+                                    showGoalDialog.value = false
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(goal.title)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showGoalDialog.value = false }) { Text("Cancel") }
+                }
+            )
+        }
+        // Age range dialog
+        if (showAgeDialog.value) {
+            AlertDialog(
+                onDismissRequest = { showAgeDialog.value = false },
+                title = { Text("Select your age range") },
+                text = {
+                    Column {
+                        ageOptions.forEach { age ->
+                            TextButton(
+                                onClick = {
+                                    viewModel.updateAgeRange(age)
+                                    showAgeDialog.value = false
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(age)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showAgeDialog.value = false }) { Text("Cancel") }
+                }
+            )
+        }
     }
 }
 
@@ -170,7 +247,8 @@ fun ProfileScreen(
 fun ProfileItem(
     title: String,
     value: String?,
-    onEdit: () -> Unit = {}
+    onEdit: () -> Unit = {},
+    editable: Boolean = true
 ) {
     Row(
         modifier = Modifier
@@ -184,7 +262,6 @@ fun ProfileItem(
             fontSize = 16.sp,
             color = Color.White
         )
-        
         Row(verticalAlignment = Alignment.CenterVertically) {
             value?.let {
                 Text(
@@ -194,16 +271,25 @@ fun ProfileItem(
                     modifier = Modifier.padding(end = 8.dp)
                 )
             }
-            
-            IconButton(onClick = onEdit) {
-                Icon(
-                    imageVector = Icons.Outlined.Edit,
-                    contentDescription = "Edit",
-                    tint = MaterialTheme.colorScheme.primary
-                )
+            if (editable) {
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = "Edit",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
     }
 }
 
 
+private fun formatDuration(millis: Long): String {
+    val hours = TimeUnit.MILLISECONDS.toHours(millis)
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60
+    return when {
+        hours > 0 -> "$hours h $minutes min"
+        else -> "$minutes min"
+    }
+}

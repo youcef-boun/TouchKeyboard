@@ -57,6 +57,13 @@ class BlockListViewModel @Inject constructor(
 
     init {
         loadData()
+
+        // Observe blocked apps changes and auto-refresh
+        viewModelScope.launch {
+            blockListRepository.getAllBlockedApps().collect { apps ->
+                _uiState.update { it.copy(blockedApps = apps) }
+            }
+        }
     }
 
     private fun loadData() {
@@ -64,13 +71,12 @@ class BlockListViewModel @Inject constructor(
             try {
                 _uiState.update { it.copy(isLoading = true, error = null) }
 
-                // Load blocked apps
+                // Load blocked apps - Show ALL apps in the block list, regardless of current block status
                 val blockedApps = blockListRepository.getBlockedApps()
-                // Filter out temporarily unblocked apps
-                val currentlyBlockedApps = blockedApps.filter { it.isCurrentlyBlocked }
+
                 _uiState.update { it.copy(
                     isLoading = false,
-                    blockedApps = currentlyBlockedApps
+                    blockedApps = blockedApps // Show all blocked apps, not just currently blocked ones
                 ) }
 
                 // Load installed apps
@@ -205,5 +211,10 @@ class BlockListViewModel @Inject constructor(
 
     fun clearError() {
         _uiState.update { it.copy(error = null) }
+    }
+
+    // Add this method to force refresh when needed
+    fun refreshData() {
+        loadData()
     }
 }

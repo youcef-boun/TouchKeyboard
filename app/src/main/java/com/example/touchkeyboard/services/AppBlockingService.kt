@@ -18,6 +18,9 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.*
 import java.util.concurrent.TimeUnit
+import com.touchkeyboard.data.local.AppDatabase
+import com.touchkeyboard.data.local.dao.BlockedAppsDao
+import kotlinx.coroutines.flow.firstOrNull
 
 private const val PACKAGE_SERVICE = "package"
 
@@ -29,6 +32,7 @@ class AppBlockingService : Service() {
     private var isRunning = false
     private var blockedApps: List<BlockedApp> = emptyList()
     private val activityManager by lazy { getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager }
+    private lateinit var blockedAppsDao: BlockedAppsDao
 
     inner class LocalBinder : Binder() {
         fun getService(): AppBlockingService = this@AppBlockingService
@@ -67,10 +71,9 @@ class AppBlockingService : Service() {
     override fun onCreate() {
         super.onCreate()
         Log.d(TAG, "Service created")
-        // Initialize the service
+        blockedAppsDao = AppDatabase.getInstance(applicationContext).blockedAppsDao()
         startForegroundService()
-        // Clear and reload blocked apps
-        clearAndLoadBlockedApps()
+        loadBlockedAppsFromDb()
     }
 
     private fun startForegroundService() {
@@ -105,40 +108,18 @@ class AppBlockingService : Service() {
             .build()
     }
 
-    private fun clearAndLoadBlockedApps() {
+    private fun loadBlockedAppsFromDb() {
+        Log.d(TAG, "loadBlockedAppsFromDb called")
         scope.launch {
-            val prefs = getSharedPreferences("block_list_prefs", Context.MODE_PRIVATE)
-            // Clear the block list
-            prefs.edit().putString("blocked_apps", "[]").apply()
-            Log.d(TAG, "Cleared block list on service creation")
-
-            // Load any new blocked apps
-            val gson = Gson()
-            val json = prefs.getString("blocked_apps", "[]")
-            val type = object : TypeToken<List<BlockedApp>>() {}.type
-            blockedApps = gson.fromJson<List<BlockedApp>>(json, type)
-                ?: emptyList()
-            Log.d(TAG, "Loaded ${blockedApps.size} total blocked apps")
-            startMonitoring()
-        }
-    }
-
-    private fun loadBlockedApps() {
-        scope.launch {
-            val prefs = getSharedPreferences("block_list_prefs", Context.MODE_PRIVATE)
-            val gson = Gson()
-            val json = prefs.getString("blocked_apps", "[]")
-            val type = object : TypeToken<List<BlockedApp>>() {}.type
-            blockedApps = gson.fromJson<List<BlockedApp>>(json, type)
-                ?: emptyList()
-            Log.d(TAG, "Loaded ${blockedApps.size} total blocked apps")
+            blockedApps = blockedAppsDao.getAllBlockedApps().firstOrNull() ?: emptyList()
+            Log.d(TAG, "Blocked apps loaded from DB: $blockedApps")
             startMonitoring()
         }
     }
 
     fun reloadBlockedApps() {
         scope.launch {
-            loadBlockedApps()
+            loadBlockedAppsFromDb()
         }
     }
 
@@ -163,6 +144,9 @@ class AppBlockingService : Service() {
     }
 
     private suspend fun checkBlockedApps() {
+        Log.d(TAG, "checkBlockedApps called, blockedApps: $blockedApps")
+        // Always refresh from DB before checking
+        blockedApps = blockedAppsDao.getAllBlockedApps().firstOrNull() ?: emptyList()
         val runningTasks = activityManager.getRunningTasks(1)
         if (runningTasks.isEmpty()) return
 
@@ -217,41 +201,26 @@ class AppBlockingService : Service() {
                     }
                 }
 
-                // Update the app's block status
-                val prefs = getSharedPreferences("block_list_prefs", Context.MODE_PRIVATE)
-                val gson = Gson()
-                val json = prefs.getString("blocked_apps", "[]")
-                val type = object : TypeToken<List<BlockedApp>>() {}.type
-                val apps = gson.fromJson<List<BlockedApp>>(json, type) ?: emptyList()
-
-                val updatedApps = apps.map { app ->
-                    if (app.packageName == packageName) {
-                        // Only update if the app should be blocked
-                        val now = System.currentTimeMillis()
-                        val shouldBeBlocked = when {
-                            app.isCurrentlyBlocked -> true
-                            !app.isCurrentlyBlocked && app.blockEndTime > 0 && now >= app.blockEndTime -> true
-                            app.isBlockedIndefinitely && app.blockEndTime == 0L -> true
-                            else -> false
-                        }
-
-                        if (shouldBeBlocked) {
-                            app.copy(
-                                isCurrentlyBlocked = true,
-                                blockStartTime = now,
-                                blockEndTime = 0L,
-                                isBlockedIndefinitely = true
-                            )
-                        } else {
-                            app
-                        }
-                    } else {
-                        app
+                // Update the app's block status in DB
+                val app = blockedAppsDao.getAllBlockedApps().firstOrNull()?.find { it.packageName == packageName }
+                if (app != null) {
+                    val now = System.currentTimeMillis()
+                    val shouldBeBlocked = when {
+                        app.isCurrentlyBlocked -> true
+                        !app.isCurrentlyBlocked && app.blockEndTime > 0 && now >= app.blockEndTime -> true
+                        app.isBlockedIndefinitely && app.blockEndTime == 0L -> true
+                        else -> false
+                    }
+                    if (shouldBeBlocked) {
+                        val updatedApp = app.copy(
+                            isCurrentlyBlocked = true,
+                            blockStartTime = now,
+                            blockEndTime = 0L,
+                            isBlockedIndefinitely = true
+                        )
+                        blockedAppsDao.insertBlockedApp(updatedApp)
                     }
                 }
-
-                val updatedJson = gson.toJson(updatedApps)
-                prefs.edit().putString("blocked_apps", updatedJson).apply()
 
                 Log.d(TAG, "Successfully blocked app: $packageName")
                 redirectToHome()
@@ -276,22 +245,23 @@ class AppBlockingService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        Log.d(TAG, "Service started with action: ${intent?.action}")
+        Log.d(TAG, "onStartCommand called with action: ${intent?.action}")
         when (intent?.action) {
             ACTION_START -> {
-                Log.d(TAG, "Starting monitoring")
+                Log.d(TAG, "ACTION_START received")
                 startForegroundService()
-                loadBlockedApps()
-                startMonitoring()
-            }
-            ACTION_RELOAD -> {
-                Log.d(TAG, "Reloading blocked apps")
-                loadBlockedApps()
-                startMonitoring() // Restart monitoring after reload
+                loadBlockedAppsFromDb()
             }
             ACTION_STOP -> {
-                Log.d(TAG, "Stopping monitoring")
-                stopMonitoring()
+                Log.d(TAG, "ACTION_STOP received")
+                stopSelf()
+            }
+            ACTION_RELOAD -> {
+                Log.d(TAG, "ACTION_RELOAD received, reloading blocked apps")
+                loadBlockedAppsFromDb()
+            }
+            else -> {
+                Log.d(TAG, "Unknown action received")
             }
         }
         return START_STICKY

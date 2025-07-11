@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.touchkeyboard.data.models.UserSettings
 import kotlinx.coroutines.flow.Flow
@@ -31,4 +32,26 @@ interface UserSettingsDao {
     
     @Query("SELECT keyboardTouchCount FROM user_settings WHERE id = 1")
     fun getKeyboardTouchCount(): Flow<Int>
+
+    @Query("UPDATE user_settings SET ageRange = :ageRange WHERE id = 1")
+    suspend fun updateAgeRange(ageRange: String)
+
+
+
+
+
+
+
+    @Query("SELECT EXISTS(SELECT 1 FROM user_settings WHERE id = 1)")
+    suspend fun doesSettingsRowExist(): Boolean
+
+    @Transaction
+    suspend fun ensureAndUpdateUserSettings(userSettings: UserSettings) {
+        if (!doesSettingsRowExist()) {
+            insertUserSettings(userSettings)
+        } else {
+            updateUserSettings(userSettings)
+        }
+    }
+
 } 

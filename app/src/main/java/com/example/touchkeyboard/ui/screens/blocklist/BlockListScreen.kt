@@ -188,6 +188,8 @@ fun BlockListScreen(
     }
 }
 
+// Update the BlockedAppItem composable to show current block status:
+
 @Composable
 fun BlockedAppItem(
     app: BlockedApp,
@@ -208,12 +210,22 @@ fun BlockedAppItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = app.appName,
-                fontSize = 16.sp,
-                color = Color.White,
+            Column(
                 modifier = Modifier.weight(1f)
-            )
+            ) {
+                Text(
+                    text = app.appName,
+                    fontSize = 16.sp,
+                    color = Color.White
+                )
+
+                // Show current block status
+                Text(
+                    text = if (app.isCurrentlyBlocked) "Currently Blocked" else "Temporarily Unblocked",
+                    fontSize = 12.sp,
+                    color = if (app.isCurrentlyBlocked) Color.Red else Color.Green
+                )
+            }
 
             IconButton(
                 onClick = onRemove,
