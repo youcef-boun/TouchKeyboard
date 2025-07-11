@@ -27,6 +27,12 @@ fun HomeScreen(
     val hasPermission by viewModel.hasUsagePermission.collectAsState()
 
     if (!hasPermission) {
+        // DEBUG: Show permission state on screen for troubleshooting
+        Text(
+            text = "Permission missing: ConnectionScreen should show",
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.padding(16.dp)
+        )
         onPermissionRequired()
         return
     }
@@ -131,6 +137,11 @@ fun HomeScreen(
         }
     }
 }
+
+
+
+
+
 
 private fun formatDuration(millis: Long): String {
     val hours = TimeUnit.MILLISECONDS.toHours(millis)

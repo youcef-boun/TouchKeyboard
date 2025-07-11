@@ -18,6 +18,9 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import com.example.touchkeyboard.services.AppUsageTrackingService
+import com.example.touchkeyboard.ui.screens.onboarding.OnboardingNavigator
+import com.example.touchkeyboard.data.OnboardingDataStore
+import androidx.compose.runtime.collectAsState
 
 
 
@@ -25,6 +28,8 @@ import com.example.touchkeyboard.services.AppUsageTrackingService
 class MainActivity : ComponentActivity() {
     @Inject
     lateinit var permissionManager: PermissionManager
+    @Inject
+    lateinit var onboardingDataStore: OnboardingDataStore
 
     // Used to detect if coming from block overlay
     private var launchedFromBlockOverlay = false
@@ -50,7 +55,18 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    MainScreen(permissionManager = permissionManager)
+                    val isOnboardingComplete = onboardingDataStore.onboardingComplete.collectAsState(initial = false).value
+                    if (isOnboardingComplete) {
+                        MainScreen()
+                    } else {
+                        OnboardingNavigator(
+                            permissionManager = permissionManager,
+                            onboardingDataStore = onboardingDataStore,
+                            onOnboardingComplete = {
+                                Log.d("TK_MainActivity", "Onboarding completed")
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -97,6 +113,7 @@ class MainActivity : ComponentActivity() {
     private fun suppressEntryAnimation() {
         overridePendingTransition(0, 0)
     }
-
-
 }
+
+
+

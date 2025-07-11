@@ -46,6 +46,15 @@
     <string name="edit">Edit</string>
     <string name="delete">Delete</string>
 
+
+    <!-- Permission Request -->
+    <string name="permission_title">Permission Required</string>
+    <string name="permission_description">TouchKeyboard needs these permissions to help you stay focused:</string>
+    <string name="grant_permissions">Grant Permissions</string>
+    <string name="overlay_permission_title">Draw Over Other Apps Permission</string>
+    <string name="overlay_permission_description">TouchKeyboard needs to draw over other apps to block distracting applications.</string>
+    <string name="go_to_settings">Go to Settings</string>
+
     <!-- Notifications -->
     <string name="channel_name">Touch Keyboard Notifications</string>
     <string name="channel_description">Notifications for blocked_apps</string>

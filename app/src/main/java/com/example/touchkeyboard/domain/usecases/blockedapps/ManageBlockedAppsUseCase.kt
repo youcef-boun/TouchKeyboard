@@ -1,7 +1,7 @@
 package com.touchkeyboard.domain.usecases.blockedapps
 
 import com.example.touchkeyboard.domain.repositories.IBlockListRepository
-import com.touchkeyboard.domain.repositories.IBlockedAppsRepository
+
 import javax.inject.Inject
 
 /**
@@ -36,10 +36,17 @@ class ManageBlockedAppsUseCase @Inject constructor(
     }
 
     /**
-     * Temporarily unblock apps for a specified duration
+     * Temporarily unblock apps for a specified duration (in minutes)
      */
     suspend fun unblockAppsTemporarily(packageNames: List<String>, durationMinutes: Int) {
         blockListRepository.unblockAppsTemporarily(packageNames, durationMinutes)
+    }
+
+    /**
+     * Temporarily unblock apps for a specified duration (in milliseconds)
+     */
+    suspend fun unblockAppsTemporarilyMs(packageNames: List<String>, durationMs: Long) {
+        blockListRepository.unblockAppsTemporarilyMs(packageNames, durationMs)
     }
 
     /**

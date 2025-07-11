@@ -13,11 +13,11 @@ import androidx.compose.ui.unit.dp
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import com.example.touchkeyboard.R
-import com.example.touchkeyboard.permissions.UsagePermissionManager
+import com.example.touchkeyboard.utils.PermissionManager
 
 @Composable
 fun ConnectionScreen(
-    permissionManager: UsagePermissionManager,
+    permissionManager: PermissionManager,
     onPermissionGranted: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -28,7 +28,7 @@ fun ConnectionScreen(
         contract = ActivityResultContracts.StartActivityForResult()
     ) {
         // Check if permission was granted after returning from settings
-        if (permissionManager.hasUsagePermission()) {
+        if (permissionManager.hasUsageStatsPermission()) {
             onPermissionGranted()
         }
     }
@@ -67,7 +67,7 @@ fun ConnectionScreen(
 
         Button(
             onClick = {
-                if (!permissionManager.hasUsagePermission()) {
+                if (!permissionManager.hasUsageStatsPermission()) {
                     showPermissionDialog = true
                 } else {
                     onPermissionGranted()
@@ -93,7 +93,8 @@ fun ConnectionScreen(
                 TextButton(
                     onClick = {
                         showPermissionDialog = false
-                        permissionManager.requestUsagePermission(permissionLauncher)
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)
+                        permissionLauncher.launch(intent)
                     }
                 ) {
                     Text("Continue")

@@ -1,5 +1,6 @@
 package com.example.touchkeyboard.ui.screens.verification
 
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.util.Log
@@ -7,8 +8,13 @@ import android.util.Size
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.viewinterop.AndroidView
@@ -29,74 +35,82 @@ private const val INFERENCE_INTERVAL_MS = 350L
 @Composable
 fun CameraPreview(
     modifier: Modifier = Modifier,
-    onHandDetected: (confidence: Float) -> Unit
+    freezeFrame: Bitmap? = null,
+    onFrameCaptured: ((Bitmap) -> Unit)? = null,
+    analyzing: Boolean = true,
+    onHandDetected: (confidence: Float) -> Unit = {}
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val previewView = remember { PreviewView(context) }
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     val interpreter = remember { loadModel(context, "model.tflite") }
-    val analyzing = remember { mutableStateOf(true) }
+    var lastBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var lastInferenceTime by remember { mutableStateOf(0L) }
     var consecutiveSuccesses by remember { mutableStateOf(0) }
 
-    DisposableEffect(Unit) {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
-        val cameraProvider = cameraProviderFuture.get()
-        val preview = Preview.Builder().build().also {
-            it.setSurfaceProvider(previewView.surfaceProvider)
+    // If freezeFrame is provided, show it using Compose Image
+    if (freezeFrame != null) {
+        Box(modifier = modifier) {
+            Image(
+                bitmap = freezeFrame.asImageBitmap(),
+                contentDescription = "Frozen camera frame",
+                modifier = Modifier.fillMaxSize()
+            )
         }
-        val imageAnalysis = ImageAnalysis.Builder()
-            .setTargetResolution(Size(224, 224)) // Model input size - changed to 224x224
-            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-            .build()
-        imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
-            val now = System.currentTimeMillis()
-            if (analyzing.value && now - lastInferenceTime > INFERENCE_INTERVAL_MS) {
-                lastInferenceTime = now
+    } else {
+        DisposableEffect(analyzing) {
+            val cameraProviderFuture = ProcessCameraProvider.getInstance(context)
+            val cameraProvider = cameraProviderFuture.get()
+            val preview = Preview.Builder().build().also {
+                it.setSurfaceProvider(previewView.surfaceProvider)
+            }
+            val imageAnalysis = ImageAnalysis.Builder()
+                .setTargetResolution(Size(224, 224))
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                .build()
+            imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
+                val now = System.currentTimeMillis()
                 val bitmap = imageProxy.toBitmap()
                 if (bitmap != null) {
-                    val (labelIdx, confidence) = classifyHand(interpreter, bitmap)
-                    val label = if (labelIdx == 0) "Hand on keyboard" else "Not hand on keyboard"
-                    Log.d(TAG, "Frame classified: $label ($confidence)")
-                    if (labelIdx == 0 && confidence > 0.8f) {
-                        consecutiveSuccesses++
-                        Log.d(TAG, "Success count: $consecutiveSuccesses/$REQUIRED_CONSECUTIVE_SUCCESSES")
-                        if (consecutiveSuccesses >= REQUIRED_CONSECUTIVE_SUCCESSES) {
-                            analyzing.value = false
-                            Log.i(TAG, "Detection accepted: $label ($confidence)")
-                            onHandDetected(confidence)
+                    lastBitmap = bitmap
+                    if (analyzing && now - lastInferenceTime > INFERENCE_INTERVAL_MS) {
+                        lastInferenceTime = now
+                        val (labelIdx, confidence) = classifyHand(interpreter, bitmap)
+                        if (labelIdx == 0 && confidence > 0.8f) {
+                            consecutiveSuccesses++
+                            if (consecutiveSuccesses >= REQUIRED_CONSECUTIVE_SUCCESSES) {
+                                onHandDetected(confidence)
+                            }
+                        } else {
+                            consecutiveSuccesses = 0
                         }
-                    } else {
-                        if (consecutiveSuccesses > 0) Log.d(TAG, "Consecutive successes reset to 0")
-                        consecutiveSuccesses = 0
-                        Log.d(TAG, "Detection rejected: $label ($confidence)")
                     }
-                } else {
-                    Log.w(TAG, "Bitmap conversion failed")
                 }
+                // If requested, capture the frame
+                if (onFrameCaptured != null && bitmap != null) {
+                    onFrameCaptured(bitmap)
+                }
+                imageProxy.close()
             }
-            imageProxy.close()
-        }
-        val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
-        Log.i(TAG, "Using camera: BACK")
-        cameraProvider.unbindAll()
-        cameraProvider.bindToLifecycle(
-            lifecycleOwner,
-            cameraSelector,
-            preview,
-            imageAnalysis
-        )
-        onDispose {
+            val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
             cameraProvider.unbindAll()
-            cameraExecutor.shutdown()
+            cameraProvider.bindToLifecycle(
+                lifecycleOwner,
+                cameraSelector,
+                preview,
+                imageAnalysis
+            )
+            onDispose {
+                cameraProvider.unbindAll()
+                cameraExecutor.shutdown()
+            }
         }
+        AndroidView(
+            factory = { previewView },
+            modifier = modifier
+        )
     }
-
-    AndroidView(
-        factory = { previewView },
-        modifier = modifier
-    )
 }
 
 private fun loadModel(context: Context, assetName: String): Interpreter {

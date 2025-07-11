@@ -48,6 +48,7 @@ class KeyboardVerificationUseCase @Inject constructor(
      * Record a new verification and handle related actions
      */
     suspend fun performVerification(isSuccessful: Boolean, unlockDuration: Int = 30): VerificationResult {
+        android.util.Log.d("KeyboardVerificationUseCase", "performVerification called with isSuccessful=$isSuccessful, unlockDuration=$unlockDuration")
         // Record the verification
         keyboardVerificationRepository.recordVerification(isSuccessful, unlockDuration)
         
@@ -55,9 +56,11 @@ class KeyboardVerificationUseCase @Inject constructor(
             // Increment keyboard touch count
             userSettingsRepository.incrementKeyboardTouchCount()
             
+            android.util.Log.d("KeyboardVerificationUseCase", "Returning Success($unlockDuration)")
             return VerificationResult.Success(unlockDuration)
         }
         
+        android.util.Log.d("KeyboardVerificationUseCase", "Returning Failure")
         return VerificationResult.Failure("Verification failed")
     }
     

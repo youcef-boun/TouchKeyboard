@@ -65,21 +65,19 @@ class BlockListViewModel @Inject constructor(
                 _uiState.update { it.copy(isLoading = true, error = null) }
 
                 // Load blocked apps
-                getBlockedAppsUseCase.getAllBlockedApps()
-                    .catch { e ->
-                        _uiState.update { it.copy(
-                            isLoading = false,
-                            error = "Failed to load blocked apps: ${e.message}"
-                        ) }
-                    }
-                    .collect { blockedApps ->
-                        // Filter out temporarily unblocked apps
-                        val currentlyBlockedApps = blockedApps.filter { it.isCurrentlyBlocked }
-                        _uiState.update { it.copy(
-                            isLoading = false,
-                            blockedApps = currentlyBlockedApps
-                        ) }
-                    }
+                val blockedApps = blockListRepository.getBlockedApps()
+                // Filter out temporarily unblocked apps
+                val currentlyBlockedApps = blockedApps.filter { it.isCurrentlyBlocked }
+                _uiState.update { it.copy(
+                    isLoading = false,
+                    blockedApps = currentlyBlockedApps
+                ) }
+
+                // Load installed apps
+                val installedApps = loadInstalledApps()
+                _uiState.update { it.copy(
+                    installedApps = installedApps
+                ) }
             } catch (e: Exception) {
                 _uiState.update { it.copy(
                     isLoading = false,

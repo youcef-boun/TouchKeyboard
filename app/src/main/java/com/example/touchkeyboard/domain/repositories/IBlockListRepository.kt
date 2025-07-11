@@ -15,5 +15,6 @@ interface IBlockListRepository {
     suspend fun isBlockListEnabled(): Boolean
     suspend fun setBlockListEnabled(enabled: Boolean)
     suspend fun unblockAppsTemporarily(packageNames: List<String>, durationMinutes: Int)
+    suspend fun unblockAppsTemporarilyMs(packageNames: List<String>, durationMs: Long)
     suspend fun isAppTemporarilyUnblocked(packageName: String): Boolean
 }

@@ -15,6 +15,7 @@ import com.touchkeyboard.data.local.dao.KeyboardVerificationDao
 import com.touchkeyboard.data.local.dao.ScreenTimeDao
 import com.touchkeyboard.data.local.dao.UserSettingsDao
 import com.touchkeyboard.data.local.converters.Converters
+import android.content.Context
 
 @Database(
     entities = [
@@ -35,6 +36,24 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun keyboardVerificationDao(): KeyboardVerificationDao
 
     companion object {
+        @Volatile
+        private var INSTANCE: AppDatabase? = null
+
+        fun getInstance(context: Context): AppDatabase {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: androidx.room.Room.databaseBuilder(
+                    context.applicationContext,
+                    AppDatabase::class.java,
+                    "app_database"
+                ).build().also { INSTANCE = it }
+            }
+        }
+
+        fun closeInstance() {
+            INSTANCE?.close()
+            INSTANCE = null
+        }
+
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Create the new app_usage table

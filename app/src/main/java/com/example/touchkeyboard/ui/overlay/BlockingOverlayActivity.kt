@@ -10,11 +10,20 @@ import com.example.touchkeyboard.utils.OverlayPermissionManager
 import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.util.Log
 import android.os.Handler
 import android.os.Looper
+import android.provider.Settings
+import androidx.core.content.ContextCompat.getSystemService
 import com.example.touchkeyboard.MainActivity
+
+
+
+
+
+
 
 
 class BlockingOverlayActivity : AppCompatActivity() {
@@ -35,14 +44,6 @@ class BlockingOverlayActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Log.d("BlockingOverlay", "onCreate called")
 
-        // Check if we have overlay permission
-        if (!OverlayPermissionManager.hasOverlayPermission(this)) {
-            Log.e("TK_BlockingOverlay", "Missing overlay permission")
-            OverlayPermissionManager.requestOverlayPermission(this)
-            redirectToHomeAndFinish()
-            return
-        }
-
         // Get the blocked app package name
         val appPackageName = intent.getStringExtra("blocked_app_package") ?: ""
         Log.d("TK_BlockingOverlay", "blocked_app_package=$appPackageName")
@@ -52,7 +53,17 @@ class BlockingOverlayActivity : AppCompatActivity() {
             return
         }
 
-        // Skip all UI rendering for zero-flash experience
+        // Check if we have overlay permission
+        if (!OverlayPermissionManager.hasOverlayPermission(this)) {
+            Log.e("TK_BlockingOverlay", "Missing overlay permission")
+            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION)
+                .setData(Uri.parse("package:${packageName}"))
+            startActivity(intent)
+            finish()
+            return
+        }
+
+        // Set window flags for overlay
         window.addFlags(
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
@@ -62,8 +73,16 @@ class BlockingOverlayActivity : AppCompatActivity() {
                     WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
                     WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
         )
-        Log.d("TK_BlockingOverlay", "Window flags set, redirecting to home")
-        redirectToHomeAndFinish()
+        Log.d("TK_BlockingOverlay", "Window flags set")
+
+        // Start the blocking process
+        startBlocking(appPackageName)
+    }
+
+    private fun startBlocking(appPackageName: String) {
+        // Start the blocking process
+        handler.post(checkRunnable)
+        Log.d("BlockingOverlay", "Blocking started for $appPackageName")
     }
 
     private fun checkAndKillApp() {

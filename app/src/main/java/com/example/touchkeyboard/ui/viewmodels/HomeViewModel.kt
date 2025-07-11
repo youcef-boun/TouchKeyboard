@@ -37,20 +37,31 @@ class HomeViewModel @Inject constructor(
     private val _hasUsagePermission = MutableStateFlow(false)
     val hasUsagePermission: StateFlow<Boolean> = _hasUsagePermission.asStateFlow()
 
+    // DEBUG: Log permission state for troubleshooting ConnectionScreen navigation
+    private fun logPermissionState() {
+        android.util.Log.d("HomeViewModel", "hasUsagePermission: ${_hasUsagePermission.value}")
+    }
+
     init {
         checkPermissionAndLoadData()
+        logPermissionState() // Log on init
     }
 
     private fun checkPermissionAndLoadData() {
         viewModelScope.launch {
             _hasUsagePermission.value = permissionManager.hasUsagePermission()
+            logPermissionState() // Log after checking
+            if (!_hasUsagePermission.value) {
+                // For debugging: force permission to false to test ConnectionScreen navigation
+                // _hasUsagePermission.value = false
+            }
             if (_hasUsagePermission.value) {
                 loadUsageData()
             }
         }
     }
 
-    fun loadUsageData() {
+    private fun loadUsageData() {
         viewModelScope.launch {
             // Get today's total screen time
             val calendar = java.util.Calendar.getInstance()

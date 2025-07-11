@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 
 import android.content.SharedPreferences
+import com.example.touchkeyboard.services.AppBlockingService
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -25,6 +26,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.Data
+import java.util.concurrent.TimeUnit
 
 
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "block_list")
@@ -128,7 +134,7 @@ class BlockListRepositoryImpl @Inject constructor(
         Log.d(TAG, "Removed app from block list: $packageName")
     }
 
-    private fun saveBlockedApps(apps: List<BlockedApp>) {
+    fun saveBlockedApps(apps: List<BlockedApp>) {
         try {
             val json = gson.toJson(apps)
             prefs.edit().putString(KEY_BLOCKED_APPS, json).apply()
@@ -180,6 +186,21 @@ class BlockListRepositoryImpl @Inject constructor(
 
         saveBlockedApps(updatedApps)
         Log.d(TAG, "Temporarily unblocked apps $packageNames for $durationMinutes minutes")
+
+        // Notify the AppBlockingService to reload its blocked apps list
+        AppBlockingService.reloadService(context)
+
+        // Schedule re-block using WorkManager
+        val workManager = WorkManager.getInstance(context)
+        val data = Data.Builder()
+            .putStringArray(com.example.touchkeyboard.services.ReblockAppsWorker.KEY_PACKAGE_NAMES, packageNames.toTypedArray())
+            .build()
+        val delayMillis = durationMinutes * 60 * 1000L
+        val request = OneTimeWorkRequestBuilder<com.example.touchkeyboard.services.ReblockAppsWorker>()
+            .setInputData(data)
+            .setInitialDelay(delayMillis, TimeUnit.MILLISECONDS)
+            .build()
+        workManager.enqueue(request)
     }
 
     override suspend fun isAppTemporarilyUnblocked(packageName: String): Boolean {
@@ -188,6 +209,48 @@ class BlockListRepositoryImpl @Inject constructor(
 
         val now = System.currentTimeMillis()
         return !app.isCurrentlyBlocked && now < app.blockEndTime
+    }
+
+    // Add this public method for forcing a reload from SharedPreferences
+    fun reloadBlockedApps() {
+        loadBlockedApps()
+    }
+
+    // New: Temporarily unblock apps for a specified duration in milliseconds
+    override suspend fun unblockAppsTemporarilyMs(packageNames: List<String>, durationMs: Long) {
+        Log.d(TAG, "unblockAppsTemporarilyMs called for $packageNames with durationMs=$durationMs")
+        val currentApps = blockedAppsFlow.value.toMutableList()
+        val now = System.currentTimeMillis()
+        val endTime = now + durationMs
+
+        val updatedApps = currentApps.map { app ->
+            if (packageNames.contains(app.packageName)) {
+                app.copy(
+                    blockStartTime = now,
+                    blockEndTime = endTime,
+                    isCurrentlyBlocked = false
+                )
+            } else {
+                app
+            }
+        }
+
+        saveBlockedApps(updatedApps)
+        Log.d(TAG, "Temporarily unblocked apps $packageNames for ${durationMs} ms")
+
+        // Notify the AppBlockingService to reload its blocked apps list
+        AppBlockingService.reloadService(context)
+
+        // Schedule re-block using WorkManager
+        val workManager = WorkManager.getInstance(context)
+        val data = Data.Builder()
+            .putStringArray(com.example.touchkeyboard.services.ReblockAppsWorker.KEY_PACKAGE_NAMES, packageNames.toTypedArray())
+            .build()
+        val request = OneTimeWorkRequestBuilder<com.example.touchkeyboard.services.ReblockAppsWorker>()
+            .setInputData(data)
+            .setInitialDelay(durationMs, TimeUnit.MILLISECONDS)
+            .build()
+        workManager.enqueue(request)
     }
 
     companion object {
