@@ -46,7 +46,7 @@ TouchKeyboard is a digital wellbeing app that helps users reclaim focus and mana
 ## 📸 Screenshots
 <div align="center">
   <img src="app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-21.jpg" alt="Home Screen" width="200"/>
-  <img src="app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-24.jpg" alt="Block List" width="200"/>
+  <img src="app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-46.jpg" alt="Block List" width="200"/>
   <img src="app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-25.jpg" alt="Usage Chart" width="200"/>
   <img src="app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-37.jpg" alt="Verification" width="200"/>
   <img src="app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-40.jpg" alt="App Blocking Overlay" width="200"/>
