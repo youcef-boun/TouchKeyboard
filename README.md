@@ -1,60 +1,49 @@
-# 🛘 TouchKeyboard2 – Digital Wellbeing & App Blocking Keyboard for Android
+#  TouchKeyboard – AI-Powered App Blocking & Digital Wellbeing for Android
 
-A **privacy-first Android app** that empowers users to manage screen time, block distracting apps, and track device usage with a custom keyboard overlay.
+A privacy-first Android app that blocks distractions until you prove you’re working—using your phone’s camera and on-device AI.
 
 ---
 
 ## 📌 Description
 
-TouchKeyboard2 helps users take control of their digital habits. It combines a custom keyboard overlay with robust app-blocking and usage-tracking features.
+TouchKeyboard is a digital wellbeing app that helps users reclaim focus and manage screen time by blocking selected apps—until the user verifies, via their phone camera, that their hand is placed on a real PC or laptop keyboard. This verification uses an on-device TensorFlow Lite model for privacy and speed.
 
-The app allows users to:
-- Set digital wellbeing goals
-- Block selected distracting apps
-- Visualize screen time and app usage stats
-- Enforce focus through Android accessibility and overlay services
-
-Built with **Jetpack Compose** and **MVVM**, it delivers a smooth onboarding experience and clean UI.
+### How it works:
+- Users select distracting apps to block.
+- When a blocked app is launched, the app overlays a lock screen.
+- To unlock, the user must perform a verification: place their hand on their physical keyboard and show it to their phone’s camera.
+- The app uses a custom-trained TensorFlow Lite model (see /assets/model.tflite) to detect the hand-on-keyboard gesture.
+- Upon successful verification, the user can select a temporary unlock duration (e.g., 15/30 minutes, rest of day).
+- All enforcement is local, privacy-respecting, and works even in the background.
 
 ---
 
 ## 🧭 User Flow
 
-1. **Onboarding**: Set goals and grant permissions.
-2. **App Blocking**: Choose apps to block; restrictions are enforced via accessibility and overlays.
-3. **Usage Tracking**: View daily screen time and app usage data.
-4. **Profile & Settings**: Adjust preferences and manage blocked apps.
+1. **Onboarding**: Set digital wellbeing goals and grant permissions (usage stats, overlays, accessibility).
+2. **App Blocking**: Choose which apps to block; enforcement is automatic.
+3. **Unlock via Verification**: When a blocked app is accessed, the user must verify by showing their hand on a keyboard to the phone camera.
+4. **Temporary Unlock**: Upon successful verification, select how long to unlock the app(s).
+5. **Usage Tracking**: Visualize daily app usage and screen time.
+6. **Profile & Settings**: Adjust preferences, review progress, and manage blocked apps.
 
 ---
 
 ## ✨ Features
 
-✅ **Custom Keyboard Overlay** – Monitors and restricts usage  
-🔐 **App Blocking** – Enforced via accessibility + overlay services  
-📱 **Screen Time Tracking** – Displays daily app usage  
-📊 **Usage Charts** – Visual and interactive statistics  
-✅ **Onboarding Flow** – Guides through setup and permissions  
-🔐 **Permission Management** – Usage stats, overlays, accessibility  
-✅ **Profile Management** – Track goals and adjust settings  
-💾 **Local Data Storage** – Persistent storage with Room  
-⚙️ **Background Services** – Active even outside the app  
+✅ **AI-Powered Verification** – Uses TensorFlow Lite to detect a hand on a physical keyboard via the phone camera  
+🔐 **App Blocking** – Block selected apps until successful verification  
+📱 **Temporary Unlock** – User chooses unlock duration after verification (15/30 min, rest of day, etc.)  
+📊 **Screen Time Tracking** – Collects and displays detailed app usage and screen time statistics  
+✅ **Onboarding Flow** – Guides users through permissions and goal-setting  
+🔐 **Permission Management** – Handles all required Android permissions (usage stats, overlays, accessibility)  
+✅ **Profile Management** – View and update user settings and digital wellbeing goals  
+💾 **Local Data Storage** – Uses Room database for reliable, local data storage  
+⚙️ **Background Services** – Enforces app blocking and tracks usage even when the app is not in the foreground  
 
 ---
 
 ## 📸 Screenshots
-
-### 🖼️ Markdown Preview:
-
-```
-![Home Screen](app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-21.jpg)
-![Block List](app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-24.jpg)
-![Usage Chart](app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-25.jpg)
-![Verification](app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-37.jpg)
-![App Blocking Overlay](app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-40.jpg)
-```
-
-### 🖼️ HTML Gallery:
-
 <div align="center">
   <img src="app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-21.jpg" alt="Home Screen" width="200"/>
   <img src="app/src/main/java/com/example/touchkeyboard/Screenshots/photo_2025-07-20_21-54-24.jpg" alt="Block List" width="200"/>
@@ -76,15 +65,15 @@ Built with **Jetpack Compose** and **MVVM**, it delivers a smooth onboarding exp
 - **Languages**: Kotlin  
 - **Frameworks**: Jetpack Compose, AndroidX, Room (SQLite)  
 - **Architecture**: MVVM (Model-View-ViewModel)  
+- **AI/ML**: TensorFlow Lite (on-device hand-on-keyboard detection)  
 - **Core Android APIs**: Accessibility Service, Usage Stats, Overlay Permissions, WorkManager  
 - **Tools**: Gradle, ProGuard, DataStore  
 
 ---
 
+## 🧠 What I Learned / Key Challenges Solved
 
-## 🧠 What I Learned / Challenges Solved
-
-Developing TouchKeyboard2 taught me how to handle **Android’s complex permission model**, build persistent **background services**, and implement **modern UI** with Jetpack Compose. I overcame challenges around **real-time usage tracking**, **app restriction enforcement**, and **smooth onboarding UX**, all within a clean **MVVM architecture** using Room for local storage.
+Developing TouchKeyboard required integrating on-device machine learning (TensorFlow Lite) with Android’s permission and background service model. I engineered a robust, privacy-respecting verification flow that uses the phone camera and a custom AI model to ensure users are actually working before granting access to blocked apps. Overcoming challenges in real-time camera processing, permission handling, and seamless user experience deepened my expertise in Android development, modern UI with Jetpack Compose, and practical ML deployment.
 
 ---
 
